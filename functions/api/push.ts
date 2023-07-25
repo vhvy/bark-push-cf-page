@@ -84,7 +84,7 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
 
         const token = await getToken(env);
 
-        const DEVICE_TOKEN = env.DEVICE_TOKEN;
+        const DEVICE_TOKEN_LIST = env.DEVICE_TOKEN.split(",");
 
         const sendTitle = title ? appName + ":" + title : appName;
 
@@ -101,15 +101,21 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
             "icon": icon
         };
 
-        const response = await fetch("https://api.push.apple.com/3/device/" + DEVICE_TOKEN, {
-            method: "POST",
-            headers: {
-                "apns-topic": "me.fin.bark",
-                "apns-push-type": "alert",
-                "authorization": "bearer " + token
-            },
-            body: JSON.stringify(pushBody)
-        });
+        if (DEVICE_TOKEN_LIST.length) {
+            const tasks = DEVICE_TOKEN_LIST.map(DEVICE_TOKEN => {
+                return fetch("https://api.push.apple.com/3/device/" + DEVICE_TOKEN, {
+                    method: "POST",
+                    headers: {
+                        "apns-topic": "me.fin.bark",
+                        "apns-push-type": "alert",
+                        "authorization": "bearer " + token
+                    },
+                    body: JSON.stringify(pushBody)
+                });
+            });
+
+            await Promise.all(tasks);
+        }
     }
 
     return new Response(null, {
